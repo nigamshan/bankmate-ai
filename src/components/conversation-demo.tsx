@@ -1,100 +1,102 @@
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { AgentCard } from "@/components/ui/agent-card"
-import { Send, Bot, User, Shield, CheckCircle } from "lucide-react"
+import { Bot, Shield, CheckCircle, Activity, Zap } from "lucide-react"
 
-interface Message {
+interface ProcessingStep {
   id: string
-  type: "user" | "agent" | "system"
-  content: string
+  agent: string
+  message: string
   timestamp: Date
-  agentType?: string
+  status: "processing" | "completed" | "current"
 }
 
-const sampleQueries = [
-  "What's my account balance?",
-  "I need to dispute a transaction",
-  "What are your branch hours?",
-  "Help me with a suspicious charge"
+const autonomousScenarios = [
+  {
+    title: "Balance Inquiry Processing",
+    steps: [
+      { agent: "Intent Agent", message: "Auto-classified: balance_inquiry", delay: 800 },
+      { agent: "Auth Agent", message: "Biometric verification successful", delay: 1200 },
+      { agent: "Retrieval Agent", message: "Account data retrieved securely", delay: 900 },
+      { agent: "Compliance Agent", message: "Regulatory checks passed", delay: 600 },
+      { agent: "Response Agent", message: "Balance: ₹1,25,847.50 delivered", delay: 400 }
+    ]
+  },
+  {
+    title: "Transaction Dispute Detection",
+    steps: [
+      { agent: "Intent Agent", message: "Auto-classified: transaction_dispute", delay: 700 },
+      { agent: "Auth Agent", message: "Enhanced verification initiated", delay: 1000 },
+      { agent: "Compliance Agent", message: "Fraud patterns analyzed", delay: 1100 },
+      { agent: "Decision Agent", message: "Complex case detected", delay: 800 },
+      { agent: "Escalation Agent", message: "Human specialist notified with context", delay: 600 }
+    ]
+  }
 ]
 
-const agentResponses = {
-  "What's my account balance?": [
-    { agent: "Intent Agent", message: "Query classified as 'balance_inquiry'" },
-    { agent: "Auth Agent", message: "Identity verified via biometric scan" },
-    { agent: "Retrieval Agent", message: "Account data retrieved securely" },
-    { agent: "Compliance Agent", message: "Balance disclosure approved" },
-    { agent: "Response", message: "Your current balance is ₹1,25,847.50" }
-  ],
-  "I need to dispute a transaction": [
-    { agent: "Intent Agent", message: "Query classified as 'transaction_dispute'" },
-    { agent: "Auth Agent", message: "Enhanced verification required" },
-    { agent: "Compliance Agent", message: "Dispute process initiated" },
-    { agent: "Escalation Agent", message: "Escalating to human specialist with full context" }
-  ]
-}
-
 export function ConversationDemo() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      type: "system",
-      content: "Secure banking session initiated. How can I assist you today?",
-      timestamp: new Date()
-    }
-  ])
-  const [inputValue, setInputValue] = useState("")
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [currentScenario, setCurrentScenario] = useState(0)
+  const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([])
+  const [currentStep, setCurrentStep] = useState(0)
+  const [isRunning, setIsRunning] = useState(false)
 
-  const handleSampleQuery = async (query: string) => {
-    setInputValue(query)
-    await handleSendMessage(query)
-  }
-
-  const handleSendMessage = async (messageContent?: string) => {
-    const content = messageContent || inputValue
-    if (!content.trim() || isProcessing) return
-
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: "user",
-      content,
-      timestamp: new Date()
-    }
-    setMessages(prev => [...prev, userMessage])
-    setInputValue("")
-    setIsProcessing(true)
-
-    // Simulate agent processing
-    const responses = agentResponses[content as keyof typeof agentResponses] || [
-      { agent: "System", message: "Processing your request..." }
-    ]
-
-    for (let i = 0; i < responses.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1500))
+  const runAutonomousDemo = async () => {
+    if (isRunning) return
+    
+    setIsRunning(true)
+    setProcessingSteps([])
+    setCurrentStep(0)
+    
+    const scenario = autonomousScenarios[currentScenario]
+    
+    for (let i = 0; i < scenario.steps.length; i++) {
+      const step = scenario.steps[i]
       
-      const agentMessage: Message = {
+      // Add step as processing
+      const newStep: ProcessingStep = {
         id: `${Date.now()}-${i}`,
-        type: "agent",
-        content: responses[i].message,
+        agent: step.agent,
+        message: step.message,
         timestamp: new Date(),
-        agentType: responses[i].agent
+        status: "current"
       }
-      setMessages(prev => [...prev, agentMessage])
+      
+      setProcessingSteps(prev => [
+        ...prev.map(s => ({ ...s, status: "completed" as const })),
+        newStep
+      ])
+      setCurrentStep(i)
+      
+      await new Promise(resolve => setTimeout(resolve, step.delay))
     }
-
-    setIsProcessing(false)
+    
+    // Mark last step as completed
+    setProcessingSteps(prev => prev.map(s => ({ ...s, status: "completed" as const })))
+    setIsRunning(false)
   }
+
+  const switchScenario = () => {
+    if (isRunning) return
+    setCurrentScenario((prev) => (prev + 1) % autonomousScenarios.length)
+    setProcessingSteps([])
+    setCurrentStep(0)
+  }
+
+  useEffect(() => {
+    // Auto-start demo
+    const timer = setTimeout(() => {
+      runAutonomousDemo()
+    }, 1000)
+    
+    return () => clearTimeout(timer)
+  }, [currentScenario])
 
   return (
     <section className="py-12 bg-gradient-surface">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-2xl font-bold mb-4">Live Conversation Demo</h2>
+          <h2 className="text-2xl font-bold mb-4">Autonomous Agent Processing</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Experience how our AI agents handle real banking queries with security and compliance.
+            Watch our AI agents autonomously handle banking queries with complete automation and security.
           </p>
         </div>
 
@@ -103,82 +105,82 @@ export function ConversationDemo() {
             <div className="lg:col-span-2">
               <AgentCard variant="secure" className="h-96">
                 <div className="flex flex-col h-full">
-                  <div className="flex items-center gap-2 mb-4 pb-4 border-b">
-                    <Shield className="h-5 w-5 text-banking-secure" />
-                    <span className="font-semibold">Secure Banking Chat</span>
-                    <div className="flex items-center gap-1 ml-auto">
-                      <div className="w-2 h-2 bg-banking-success rounded-full animate-pulse" />
-                      <span className="text-xs text-banking-success">Encrypted</span>
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b">
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-banking-secure" />
+                      <span className="font-semibold">{autonomousScenarios[currentScenario].title}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-banking-warning animate-pulse' : 'bg-banking-success'}`} />
+                        <span className="text-xs text-muted-foreground">
+                          {isRunning ? 'Processing' : 'Ready'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={switchScenario}
+                        disabled={isRunning}
+                        className="text-xs text-primary hover:underline disabled:opacity-50"
+                      >
+                        Switch Demo
+                      </button>
                     </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex gap-3 ${
-                          message.type === "user" ? "justify-end" : "justify-start"
-                        }`}
-                      >
-                        {message.type !== "user" && (
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <Bot className="h-4 w-4 text-primary" />
-                          </div>
-                        )}
-                        <div
-                          className={`max-w-[80%] rounded-lg p-3 text-sm ${
-                            message.type === "user"
-                              ? "bg-primary text-primary-foreground"
-                              : message.type === "system"
-                              ? "bg-banking-secure/10 text-banking-secure"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {message.agentType && (
-                            <div className="text-xs opacity-70 mb-1">
-                              {message.agentType}
-                            </div>
+                    {processingSteps.map((step, index) => (
+                      <div key={step.id} className="flex gap-3 justify-start">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          step.status === 'completed' 
+                            ? 'bg-banking-success/20 text-banking-success' 
+                            : step.status === 'current'
+                            ? 'bg-banking-warning/20 text-banking-warning'
+                            : 'bg-muted'
+                        }`}>
+                          {step.status === 'completed' ? (
+                            <CheckCircle className="h-4 w-4" />
+                          ) : step.status === 'current' ? (
+                            <Bot className="h-4 w-4 animate-pulse" />
+                          ) : (
+                            <Bot className="h-4 w-4" />
                           )}
-                          {message.content}
                         </div>
-                        {message.type === "user" && (
-                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                            <User className="h-4 w-4 text-secondary-foreground" />
+                        <div className={`max-w-[80%] rounded-lg p-3 text-sm ${
+                          step.status === 'completed'
+                            ? 'bg-banking-success/10 text-banking-success'
+                            : step.status === 'current'
+                            ? 'bg-banking-warning/10 text-banking-warning'
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          <div className="text-xs opacity-70 mb-1">
+                            {step.agent}
                           </div>
-                        )}
+                          {step.message}
+                        </div>
                       </div>
                     ))}
-                    {isProcessing && (
-                      <div className="flex gap-3 justify-start">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Bot className="h-4 w-4 text-primary animate-pulse" />
-                        </div>
-                        <div className="bg-muted rounded-lg p-3 text-sm">
-                          <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0.1s" }} />
-                            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
-                          </div>
+                    
+                    {!isRunning && processingSteps.length === 0 && (
+                      <div className="flex items-center justify-center h-32 text-muted-foreground">
+                        <div className="text-center">
+                          <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">Autonomous processing will begin shortly...</p>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex gap-2">
-                    <Input
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      placeholder="Ask about your account..."
-                      onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                      disabled={isProcessing}
-                    />
-                    <Button 
-                      onClick={() => handleSendMessage()}
-                      disabled={isProcessing || !inputValue.trim()}
-                      size="icon"
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <span className="text-sm text-muted-foreground">
+                      Fully autonomous • No human intervention required
+                    </span>
+                    <button
+                      onClick={runAutonomousDemo}
+                      disabled={isRunning}
+                      className="text-sm text-primary hover:underline disabled:opacity-50"
                     >
-                      <Send className="h-4 w-4" />
-                    </Button>
+                      {isRunning ? 'Processing...' : 'Run Demo'}
+                    </button>
                   </div>
                 </div>
               </AgentCard>
@@ -186,19 +188,24 @@ export function ConversationDemo() {
 
             <div className="space-y-4">
               <AgentCard>
-                <h3 className="font-semibold mb-3">Sample Queries</h3>
-                <div className="space-y-2">
-                  {sampleQueries.map((query) => (
-                    <Button
-                      key={query}
-                      variant="outline"
-                      className="w-full text-left justify-start text-sm h-auto p-3"
-                      onClick={() => handleSampleQuery(query)}
-                      disabled={isProcessing}
-                    >
-                      {query}
-                    </Button>
-                  ))}
+                <h3 className="font-semibold mb-3">Autonomous Capabilities</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-banking-success mt-0.5" />
+                    <span>Auto-classification of customer intents</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-banking-success mt-0.5" />
+                    <span>Instant biometric verification</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-banking-success mt-0.5" />
+                    <span>Real-time compliance monitoring</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-banking-success mt-0.5" />
+                    <span>Smart escalation to humans</span>
+                  </div>
                 </div>
               </AgentCard>
 
