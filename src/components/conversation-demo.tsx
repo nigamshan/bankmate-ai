@@ -82,7 +82,7 @@ export function ConversationDemo() {
   }
 
   useEffect(() => {
-    // Auto-start demo
+    // Auto-start demo after component mount
     const timer = setTimeout(() => {
       runAutonomousDemo()
     }, 1000)
