@@ -101,7 +101,7 @@ export function ConversationDemo() {
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <AgentCard variant="secure" className="h-96">
+              <AgentCard variant="secure" className="h-[600px] lg:h-[700px]">
                 <div className="flex flex-col h-full">
                   <div className="flex items-center gap-2 mb-4 pb-4 border-b">
                     <Shield className="h-5 w-5 text-banking-secure" />
